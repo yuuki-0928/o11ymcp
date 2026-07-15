@@ -15,3 +15,17 @@ type MemoryServiceRepository struct {
 func (m *MemoryServiceRepository) ListServices(ctx context.Context) ([]Service, error) {
 	return m.Services, nil
 }
+
+// MemoryTraceRepository is a temporary in-memory TraceRepository (同上の理由で存在)。
+// Spans は traceID をキーにグルーピング済みの状態で保持する。
+type MemoryTraceRepository struct {
+	SpansByTraceID map[string][]Span
+}
+
+func (m *MemoryTraceRepository) GetTrace(ctx context.Context, traceID string) ([]Span, error) {
+	spans, ok := m.SpansByTraceID[traceID]
+	if !ok {
+		return nil, ErrTraceNotFound
+	}
+	return spans, nil
+}

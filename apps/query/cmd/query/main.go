@@ -16,6 +16,10 @@ import (
 	"github.com/nakagawa-yuki/o11y-mcp/query/internal/store"
 )
 
+// devSeedTraceID は手元動作確認用のダミー trace データのID。
+// ClickHouse実装が入ったら本ファイルのシード処理ごと削除する。
+const devSeedTraceID = "trace-1"
+
 func main() {
 	// FR-QR-05: 認証必須。キー未設定のまま起動して「認証なしで動いてしまう」事故を防ぐため、
 	// 環境変数が空なら起動自体を失敗させる。
@@ -30,13 +34,29 @@ func main() {
 	}
 
 	// TODO(clickhouse-repository): ClickHouse実装ができ次第、この一時的なインメモリ実装から
-	// store.NewClickHouseServiceRepository(dsn) 等に差し替える。
-	repo := &store.MemoryServiceRepository{
+	// store.NewClickHouseServiceRepository(dsn) / NewClickHouseTraceRepository(dsn) 等に差し替える。
+	serviceRepo := &store.MemoryServiceRepository{
 		Services: []store.Service{{Name: "checkout"}, {Name: "payment"}},
+	}
+	now := time.Now().UTC()
+	traceRepo := &store.MemoryTraceRepository{
+		SpansByTraceID: map[string][]store.Span{
+			devSeedTraceID: {
+				{
+					TraceID:     devSeedTraceID,
+					SpanID:      "span-1",
+					ServiceName: "checkout",
+					Name:        "POST /checkout",
+					StartTime:   now,
+					EndTime:     now.Add(120 * time.Millisecond),
+				},
+			},
+		},
 	}
 
 	mux := http.NewServeMux()
-	mux.Handle("/v1/services", httpapi.RequireAPIKey(apiKey, httpapi.ListServicesHandler(repo)))
+	mux.Handle("/v1/services", httpapi.RequireAPIKey(apiKey, httpapi.ListServicesHandler(serviceRepo)))
+	mux.Handle("GET /v1/traces/{traceId}", httpapi.RequireAPIKey(apiKey, httpapi.GetTraceHandler(traceRepo)))
 	// /healthz は Container Apps / Docker のヘルスチェックから叩かれる想定のため認証をかけない。
 	mux.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
