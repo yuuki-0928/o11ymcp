@@ -29,3 +29,42 @@ func (m *MemoryTraceRepository) GetTrace(ctx context.Context, traceID string) ([
 	}
 	return spans, nil
 }
+
+// MemoryLogRepository is a temporary in-memory LogRepository (同上の理由で存在)。
+// ClickHouse実装と異なり大量データは想定しないため、フィルタは単純な線形走査で行う。
+type MemoryLogRepository struct {
+	Logs []LogRecord
+}
+
+func (m *MemoryLogRepository) SearchLogs(ctx context.Context, query LogQuery) (LogSearchResult, error) {
+	matched := make([]LogRecord, 0, len(m.Logs))
+	for _, l := range m.Logs {
+		if query.ServiceName != "" && l.ServiceName != query.ServiceName {
+			continue
+		}
+		if query.Severity != "" && l.Severity != query.Severity {
+			continue
+		}
+		if !query.Start.IsZero() && l.Timestamp.Before(query.Start) {
+			continue
+		}
+		if !query.End.IsZero() && l.Timestamp.After(query.End) {
+			continue
+		}
+		matched = append(matched, l)
+	}
+
+	total := int64(len(matched))
+
+	// offset/limit によるページ切り出し。範囲外アクセスにならないよう境界を丁寧に扱う。
+	start := query.Offset
+	if start > len(matched) {
+		start = len(matched)
+	}
+	end := start + query.Limit
+	if end > len(matched) {
+		end = len(matched)
+	}
+
+	return LogSearchResult{Logs: matched[start:end], Total: total}, nil
+}

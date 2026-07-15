@@ -53,10 +53,17 @@ func main() {
 			},
 		},
 	}
+	logRepo := &store.MemoryLogRepository{
+		Logs: []store.LogRecord{
+			{Timestamp: now, ServiceName: "checkout", Severity: "ERROR", Body: "payment gateway timeout", TraceID: devSeedTraceID},
+			{Timestamp: now, ServiceName: "checkout", Severity: "INFO", Body: "order created"},
+		},
+	}
 
 	mux := http.NewServeMux()
 	mux.Handle("/v1/services", httpapi.RequireAPIKey(apiKey, httpapi.ListServicesHandler(serviceRepo)))
 	mux.Handle("GET /v1/traces/{traceId}", httpapi.RequireAPIKey(apiKey, httpapi.GetTraceHandler(traceRepo)))
+	mux.Handle("/v1/logs", httpapi.RequireAPIKey(apiKey, httpapi.SearchLogsHandler(logRepo)))
 	// /healthz は Container Apps / Docker のヘルスチェックから叩かれる想定のため認証をかけない。
 	mux.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)

@@ -50,3 +50,38 @@ var ErrTraceNotFound = errors.New("trace not found")
 type TraceRepository interface {
 	GetTrace(ctx context.Context, traceID string) ([]Span, error)
 }
+
+// LogRecord は OTel の 1 ログレコードを表すドメインモデル (otel_logs テーブルに対応)。
+type LogRecord struct {
+	Timestamp   time.Time
+	ServiceName string
+	Severity    string
+	Body        string
+	TraceID     string
+	SpanID      string
+}
+
+// LogQuery は GET /v1/logs (FR-QR-01) の検索条件をまとめたもの。
+// ゼロ値 (Start/End が time.Time のゼロ値、ServiceName/Severity が空文字) は
+// 「その条件を指定しない」ことを表す。実際のフィルタリングは ClickHouse 実装側の責務であり、
+// このパッケージはあくまで「検索条件を表現する型」を提供するだけに留める。
+type LogQuery struct {
+	ServiceName string
+	Severity    string
+	Start       time.Time
+	End         time.Time
+	Limit       int
+	Offset      int
+}
+
+// LogSearchResult は検索結果本体と、ページング表示に必要な総件数を保持する。
+// FR-QR-04 (ページングを備える) はこの Total と LogQuery.Limit/Offset の組み合わせで実現する。
+type LogSearchResult struct {
+	Logs  []LogRecord
+	Total int64
+}
+
+// LogRepository は「条件を指定してログを検索する」責務のみを持つインターフェース。
+type LogRepository interface {
+	SearchLogs(ctx context.Context, query LogQuery) (LogSearchResult, error)
+}
