@@ -1,0 +1,14 @@
+# Go build artifacts
+*.exe
+*.test
+/apps/*/query
+/apps/*/mcp
+/apps/*/ingest
+
+# Local env files
+.env
+deploy/compose/.env
+
+# IDE
+.vscode/
+.idea/
