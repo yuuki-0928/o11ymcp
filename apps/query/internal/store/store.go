@@ -85,3 +85,26 @@ type LogSearchResult struct {
 type LogRepository interface {
 	SearchLogs(ctx context.Context, query LogQuery) (LogSearchResult, error)
 }
+
+// MetricPoint は集計後の1時系列ポイント (時刻 + 集計値)。
+type MetricPoint struct {
+	Timestamp time.Time
+	Value     float64
+}
+
+// MetricQuery は GET /v1/metrics (FR-QR-03) の検索条件。
+// AggregationFunc の許容値 ("avg","sum","min","max","count") はこのパッケージでは検証しない。
+// クエリパラメータのバリデーション (httpapi 層) で弾いてから渡ってくる前提とする。
+type MetricQuery struct {
+	MetricName      string
+	ServiceName     string
+	Start           time.Time
+	End             time.Time
+	AggregationFunc string
+	Step            time.Duration
+}
+
+// MetricRepository は「メトリクスを時系列で取得する」責務のみを持つインターフェース。
+type MetricRepository interface {
+	QueryMetrics(ctx context.Context, query MetricQuery) ([]MetricPoint, error)
+}

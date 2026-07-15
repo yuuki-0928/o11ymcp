@@ -59,11 +59,19 @@ func main() {
 			{Timestamp: now, ServiceName: "checkout", Severity: "INFO", Body: "order created"},
 		},
 	}
+	metricRepo := &store.MemoryMetricRepository{
+		Points: []store.MetricPoint{
+			{Timestamp: now.Add(-2 * time.Minute), Value: 120},
+			{Timestamp: now.Add(-1 * time.Minute), Value: 150},
+			{Timestamp: now, Value: 90},
+		},
+	}
 
 	mux := http.NewServeMux()
 	mux.Handle("/v1/services", httpapi.RequireAPIKey(apiKey, httpapi.ListServicesHandler(serviceRepo)))
 	mux.Handle("GET /v1/traces/{traceId}", httpapi.RequireAPIKey(apiKey, httpapi.GetTraceHandler(traceRepo)))
 	mux.Handle("/v1/logs", httpapi.RequireAPIKey(apiKey, httpapi.SearchLogsHandler(logRepo)))
+	mux.Handle("/v1/metrics", httpapi.RequireAPIKey(apiKey, httpapi.QueryMetricsHandler(metricRepo)))
 	// /healthz は Container Apps / Docker のヘルスチェックから叩かれる想定のため認証をかけない。
 	mux.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)

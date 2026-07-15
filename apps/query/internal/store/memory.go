@@ -68,3 +68,21 @@ func (m *MemoryLogRepository) SearchLogs(ctx context.Context, query LogQuery) (L
 
 	return LogSearchResult{Logs: matched[start:end], Total: total}, nil
 }
+
+// MemoryMetricRepository is a temporary in-memory MetricRepository (同上の理由で存在)。
+// 実際の集計 (avg/sum/min/max/count によるバケット化) は ClickHouse 側の SQL に委ねる想定のため、
+// ここでは動作確認に必要な最小限として、条件に一致する点をそのまま返すだけに留める。
+type MemoryMetricRepository struct {
+	Points []MetricPoint
+}
+
+func (m *MemoryMetricRepository) QueryMetrics(ctx context.Context, query MetricQuery) ([]MetricPoint, error) {
+	matched := make([]MetricPoint, 0, len(m.Points))
+	for _, p := range m.Points {
+		if p.Timestamp.Before(query.Start) || p.Timestamp.After(query.End) {
+			continue
+		}
+		matched = append(matched, p)
+	}
+	return matched, nil
+}
