@@ -16,10 +16,6 @@ import (
 	"github.com/nakagawa-yuki/o11y-mcp/query/internal/store"
 )
 
-// devSeedTraceID は手元動作確認用のダミー trace データのID。
-// ClickHouse実装が入ったら本ファイルのシード処理ごと削除する。
-const devSeedTraceID = "trace-1"
-
 func main() {
 	// FR-QR-05: 認証必須。キー未設定のまま起動して「認証なしで動いてしまう」事故を防ぐため、
 	// 環境変数が空なら起動自体を失敗させる。
@@ -33,45 +29,27 @@ func main() {
 		addr = ":8080"
 	}
 
-	// TODO(clickhouse-repository): ClickHouse実装ができ次第、この一時的なインメモリ実装から
-	// store.NewClickHouseServiceRepository(dsn) / NewClickHouseTraceRepository(dsn) 等に差し替える。
-	serviceRepo := &store.MemoryServiceRepository{
-		Services: []store.Service{{Name: "checkout"}, {Name: "payment"}},
+	// FR-OP-06: 挙動を環境変数で切替える方針の一環。
+	// 例: clickhouse://user:password@localhost:9000/default
+	dsn := os.Getenv("CLICKHOUSE_DSN")
+	if dsn == "" {
+		log.Fatal("CLICKHOUSE_DSN environment variable is required")
 	}
-	now := time.Now().UTC()
-	traceRepo := &store.MemoryTraceRepository{
-		SpansByTraceID: map[string][]store.Span{
-			devSeedTraceID: {
-				{
-					TraceID:     devSeedTraceID,
-					SpanID:      "span-1",
-					ServiceName: "checkout",
-					Name:        "POST /checkout",
-					StartTime:   now,
-					EndTime:     now.Add(120 * time.Millisecond),
-				},
-			},
-		},
+	db, err := store.OpenClickHouse(dsn)
+	if err != nil {
+		log.Fatalf("failed to connect to clickhouse: %v", err)
 	}
-	logRepo := &store.MemoryLogRepository{
-		Logs: []store.LogRecord{
-			{Timestamp: now, ServiceName: "checkout", Severity: "ERROR", Body: "payment gateway timeout", TraceID: devSeedTraceID},
-			{Timestamp: now, ServiceName: "checkout", Severity: "INFO", Body: "order created"},
-		},
-	}
-	metricRepo := &store.MemoryMetricRepository{
-		Points: []store.MetricPoint{
-			{Timestamp: now.Add(-2 * time.Minute), Value: 120},
-			{Timestamp: now.Add(-1 * time.Minute), Value: 150},
-			{Timestamp: now, Value: 90},
-		},
-	}
+	defer db.Close()
+
+	// ServiceRepository/TraceRepository/LogRepository/MetricRepository の4つを
+	// 1つの ClickHouseRepository で満たす (internal/store/clickhouse.go のコメント参照)。
+	repo := store.NewClickHouseRepository(db)
 
 	mux := http.NewServeMux()
-	mux.Handle("/v1/services", httpapi.RequireAPIKey(apiKey, httpapi.ListServicesHandler(serviceRepo)))
-	mux.Handle("GET /v1/traces/{traceId}", httpapi.RequireAPIKey(apiKey, httpapi.GetTraceHandler(traceRepo)))
-	mux.Handle("/v1/logs", httpapi.RequireAPIKey(apiKey, httpapi.SearchLogsHandler(logRepo)))
-	mux.Handle("/v1/metrics", httpapi.RequireAPIKey(apiKey, httpapi.QueryMetricsHandler(metricRepo)))
+	mux.Handle("/v1/services", httpapi.RequireAPIKey(apiKey, httpapi.ListServicesHandler(repo)))
+	mux.Handle("GET /v1/traces/{traceId}", httpapi.RequireAPIKey(apiKey, httpapi.GetTraceHandler(repo)))
+	mux.Handle("/v1/logs", httpapi.RequireAPIKey(apiKey, httpapi.SearchLogsHandler(repo)))
+	mux.Handle("/v1/metrics", httpapi.RequireAPIKey(apiKey, httpapi.QueryMetricsHandler(repo)))
 	// /healthz は Container Apps / Docker のヘルスチェックから叩かれる想定のため認証をかけない。
 	mux.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
