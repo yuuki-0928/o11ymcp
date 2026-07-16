@@ -1,0 +1,128 @@
+# o11y-mcp の一次デプロイ手段 (FR-OP-01: `docker compose up` 一発で全コンポーネントが起動)。
+# 各アプリケーション (ingest/query/mcp) は Azure Container Apps 版と同一の Dockerfile/イメージを使う
+# (FR-OP-05)。ClickHouseの Hot(ローカル)/Cold(MinIO=S3互換) 階層化は
+# clickhouse/config.d/storage.xml + clickhouse-init/apply-storage-policy.sql で構成する。
+
+services:
+  minio:
+    image: minio/minio:RELEASE.2025-04-08T15-41-24Z
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+    volumes:
+      - minio-data:/data
+    ports:
+      - "9001:9001" # MinIO管理コンソール (任意)
+
+  minio-init:
+    image: minio/mc:RELEASE.2025-04-08T15-39-49Z
+    depends_on:
+      - minio
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+    entrypoint: ["/bin/sh", "/init/create-bucket.sh"]
+    volumes:
+      - ./minio-init/create-bucket.sh:/init/create-bucket.sh:ro
+
+  clickhouse:
+    image: clickhouse/clickhouse-server:23.3.8.21-alpine
+    depends_on:
+      minio-init:
+        condition: service_completed_successfully
+    environment:
+      CLICKHOUSE_USER: ${CLICKHOUSE_USER}
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD}
+      CLICKHOUSE_DB: ${CLICKHOUSE_DB}
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+    volumes:
+      - clickhouse-data:/var/lib/clickhouse
+      - ./clickhouse/config.d/storage.xml:/etc/clickhouse-server/config.d/storage.xml:ro
+    healthcheck:
+      test: ["CMD", "clickhouse-client", "--user", "${CLICKHOUSE_USER}", "--password", "${CLICKHOUSE_PASSWORD}", "--query", "SELECT 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    ports:
+      - "8123:8123" # ClickHouse HTTP (Grafana等からの直接確認用, 任意)
+
+  clickhouse-init:
+    image: clickhouse/clickhouse-server:23.3.8.21-alpine
+    depends_on:
+      clickhouse:
+        condition: service_healthy
+    environment:
+      CLICKHOUSE_HOST: clickhouse
+      CLICKHOUSE_USER: ${CLICKHOUSE_USER}
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD}
+    entrypoint: ["/bin/sh", "/init/wait-and-apply.sh"]
+    volumes:
+      - ./clickhouse-init/wait-and-apply.sh:/init/wait-and-apply.sh:ro
+      - ./clickhouse-init/apply-storage-policy.sql:/migrations/apply-storage-policy.sql:ro
+
+  ingest:
+    build:
+      context: ../../apps/ingest
+    depends_on:
+      clickhouse:
+        condition: service_healthy
+    environment:
+      CLICKHOUSE_ENDPOINT: tcp://clickhouse:9000
+      CLICKHOUSE_USERNAME: ${CLICKHOUSE_USER}
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD}
+      CLICKHOUSE_DATABASE: ${CLICKHOUSE_DB}
+    volumes:
+      - ../../apps/ingest/otelcol-config.yaml:/etc/o11y-mcp/otelcol-config.yaml:ro
+    ports:
+      - "4317:4317" # OTLP/gRPC
+      - "4318:4318" # OTLP/HTTP
+
+  query:
+    build:
+      context: ../../apps/query
+    depends_on:
+      clickhouse:
+        condition: service_healthy
+    environment:
+      LISTEN_ADDR: ":8080"
+      QUERY_API_KEY: ${QUERY_API_KEY}
+      CLICKHOUSE_DSN: clickhouse://${CLICKHOUSE_USER}:${CLICKHOUSE_PASSWORD}@clickhouse:9000/${CLICKHOUSE_DB}
+    ports:
+      - "8080:8080"
+
+  mcp:
+    build:
+      context: ../../apps/mcp
+    depends_on:
+      - query
+    environment:
+      LISTEN_ADDR: ":8081"
+      MCP_API_KEY: ${MCP_API_KEY}
+      QUERY_API_BASE_URL: http://query:8080
+      QUERY_API_KEY: ${QUERY_API_KEY}
+    ports:
+      - "8081:8081"
+
+  grafana:
+    image: grafana/grafana:12.2.1
+    depends_on:
+      clickhouse:
+        condition: service_healthy
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD}
+      GF_INSTALL_PLUGINS: grafana-clickhouse-datasource
+      CLICKHOUSE_DB: ${CLICKHOUSE_DB}
+      CLICKHOUSE_USER: ${CLICKHOUSE_USER}
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD}
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+    ports:
+      - "3000:3000"
+
+volumes:
+  clickhouse-data:
+  minio-data:
+  grafana-data:

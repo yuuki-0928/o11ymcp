@@ -4,7 +4,7 @@
 
 [English README](./README.en.md)
 
-> **現在のステータス**: 要件定義・設計フェーズ完了、実装着手前のスキャフォールド段階です。詳細は [`docs/requirements.md`](./docs/requirements.md) / [`docs/design.md`](./docs/design.md) を参照してください。
+> **現在のステータス**: Ingest / Query API / MCP Server の実装と、Docker Compose での起動・動作確認まで完了しています。Azure (Bicep + azd) はこれから整備します。詳細は [`docs/requirements.md`](./docs/requirements.md) / [`docs/design.md`](./docs/design.md) を参照してください。
 
 ## 特徴
 
@@ -41,16 +41,33 @@ flowchart LR
 
 詳細な構成図は [`docs/architecture.drawio`](./docs/architecture.drawio) ([draw.io](https://app.diagrams.net) で開く) を参照してください。
 
-## セットアップ (予定 / 実装後に有効)
+## セットアップ
 
 ```bash
 git clone <このリポジトリ>
-cd o11y-mcp
-cp deploy/compose/.env.example deploy/compose/.env  # API Key 等を設定
-docker compose -f deploy/compose/docker-compose.yml up
+cd o11y-mcp/deploy/compose
+cp .env.example .env  # API Key 等を必ず変更してください
+docker compose up -d --build
 ```
 
-Azure へのデプロイ (予定):
+起動後の主なエンドポイント:
+
+| コンポーネント | URL | 認証 |
+| :--- | :--- | :--- |
+| Ingest (OTLP/HTTP) | `http://localhost:4318/v1/{logs,traces,metrics}` | なし |
+| Ingest (OTLP/gRPC) | `localhost:4317` | なし |
+| Query API | `http://localhost:8080/v1/...` | `Authorization: Bearer <QUERY_API_KEY>` |
+| MCP Server (Streamable HTTP) | `http://localhost:8081/` | `Authorization: Bearer <MCP_API_KEY>` |
+| Grafana | `http://localhost:3000` (admin / `.env`の`GRAFANA_ADMIN_PASSWORD`) | - |
+| MinIO コンソール | `http://localhost:9001` | `.env`の`MINIO_ROOT_USER`/`PASSWORD` |
+
+停止・破棄 (FR-OP-04):
+
+```bash
+docker compose down -v
+```
+
+Azure へのデプロイ (未整備、今後 Bicep + azd で対応予定):
 
 ```bash
 azd auth login
@@ -92,6 +109,7 @@ Go / OpenTelemetry Collector Builder / ClickHouse / MCP 公式 Go SDK / Docker C
 
 ## 既知の制約 / TODO
 
-- 実装未着手 (Query API から着手予定、[`docs/design.md`](./docs/design.md) §8 参照)
+- Azure (Bicep + azd) は未整備 ([`docs/design.md`](./docs/design.md) §8 参照)
 - Entra ID 認証は v1.0 のスコープ外 (v1.1以降で再検討)
 - ダッシュボード UI は自作せず Grafana + ClickHouse datasource で代替
+- OSS運用資材 (CONTRIBUTING/Issue・PRテンプレート/リリース自動化/依存監視パイプライン) は未整備

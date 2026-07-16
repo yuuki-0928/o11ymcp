@@ -1,0 +1,36 @@
+# OpenTelemetry Collector Builder (OCB) の設定ファイル。
+# `builder --config=builder-config.yaml` を実行すると、ここで指定した
+# receiver/processor/exporter を組み込んだ Collector distribution 一式
+# (main.go, components.go, go.mod 等) が生成される。
+#
+# なぜ自前でOTLP受信処理を書かないか (docs/design.md 参照):
+#   OTel Collector の otlpreceiver と、collector-contrib の clickhouseexporter は
+#   どちらもOSSコミュニティで実運用・テストされている実装であり、
+#   自前で書き直すのは車輪の再発明であるだけでなく保守負荷も増える。
+#   個人開発でOSS運用を楽にしたい (要件定義書 4.6節) という方針とも合致する。
+dist:
+  name: o11y-mcp-ingest
+  description: o11y-mcp Ingest (OTLP receiver -> ClickHouse exporter)
+  output_path: ./_build
+  module: github.com/nakagawa-yuki/o11y-mcp/ingest
+
+# バージョンは https://proxy.golang.org 上で実在を確認した上で固定している
+# (opentelemetry-collector本体とcontribは同一バージョン番号でリリースされる)。
+receivers:
+  - gomod: go.opentelemetry.io/collector/receiver/otlpreceiver v0.156.0
+
+processors:
+  # FR-IN-06 (サイズ超過・不正リクエストの扱い) やスループット (NFR-P-01) を踏まえ、
+  # 受信したデータをある程度まとめてからエクスポートするためにbatchprocessorを使う。
+  - gomod: go.opentelemetry.io/collector/processor/batchprocessor v0.156.0
+
+exporters:
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/exporter/clickhouseexporter v0.156.0
+  # 動作確認・デバッグ用。標準出力にテレメトリを出せるようにしておく (本番のservice pipelineには含めない想定)。
+  - gomod: go.opentelemetry.io/collector/exporter/debugexporter v0.156.0
+
+providers:
+  - gomod: go.opentelemetry.io/collector/confmap/provider/envprovider v1.62.0
+  - gomod: go.opentelemetry.io/collector/confmap/provider/fileprovider v1.62.0
+  - gomod: go.opentelemetry.io/collector/confmap/provider/httpprovider v1.62.0
+  - gomod: go.opentelemetry.io/collector/confmap/provider/yamlprovider v1.62.0

@@ -1,0 +1,47 @@
+# Ingest の実行時設定 (FR-OP-06: 環境変数で挙動を切替える方針)。
+# clickhouseexporter のフィールド名は upstream (opentelemetry-collector-contrib
+# v0.156.0) の exporter/clickhouseexporter/config.go を一次情報として確認済み。
+receivers:
+  otlp:
+    protocols:
+      # FR-IN-02: OTLP/gRPC
+      grpc:
+        endpoint: 0.0.0.0:4317
+      # FR-IN-01: OTLP/HTTP (protobuf)
+      http:
+        endpoint: 0.0.0.0:4318
+
+processors:
+  # 受信データをまとめてからエクスポートすることで、ClickHouseへの
+  # INSERT回数を減らし書き込み効率を上げる (NFR-P-01のスループット目標に寄与)。
+  batch: {}
+
+exporters:
+  clickhouse:
+    endpoint: ${env:CLICKHOUSE_ENDPOINT}
+    username: ${env:CLICKHOUSE_USERNAME}
+    password: ${env:CLICKHOUSE_PASSWORD}
+    database: ${env:CLICKHOUSE_DATABASE}
+    # FR-ST-04 既定値: ホット保持 7日 (168h)。
+    # コールドストレージへの自動移送 (FR-ST-03) はエクスポータ設定ではなく
+    # ClickHouse サーバー側の Tiered Storage ポリシー + TTL SQL で行うため、
+    # ここでは「削除までの合計TTL」のみを指定している。詳細は docs/design.md §4、
+    # 実際の TTL SQL / disk policy は infra 実装時に schema/ 配下へ追加する。
+    ttl: 168h
+    create_schema: true
+    compress: lz4
+
+service:
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [clickhouse]
+    metrics:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [clickhouse]
+    logs:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [clickhouse]
