@@ -122,7 +122,7 @@ Go / OpenTelemetry Collector Builder / ClickHouse / MCP 公式 Go SDK / Docker C
 ## 既知の制約 / TODO
 
 - Azure は Bicep 作成・`what-if`検証まで完了。実際の `azd up` によるデプロイ確認はこれから ([`docs/design.md`](./docs/design.md) §9 参照)
-- Azure版はOTLP/gRPC未対応 (Container Apps Consumptionプランの制約、§9.3参照)、Azure版のTTL/storage_policy migrationも手動適用が必要
+- Azure版はOTLP/gRPC未対応 (Container Apps Consumptionプランの制約、§9.4参照)、Azure版のTTL/storage_policy migrationも手動適用が必要
 - Entra ID 認証は v1.0 のスコープ外 (v1.1以降で再検討)
 - ダッシュボード UI は自作せず Grafana + ClickHouse datasource で代替
 - CI/リリース/依存監視ワークフロー (`.github/workflows/`) はファイル作成済みだが、リモートリポジトリへのpush・実行確認はまだ行っていない

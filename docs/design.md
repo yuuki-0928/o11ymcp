@@ -4,7 +4,7 @@
 | :--- | :--- |
 | 対象 | [`docs/requirements.md`](./requirements.md) (v1.0 確定版) |
 | 位置付け | 全体像が分かる粒度の概略設計。**詳細な実装判断・理由はコード内コメントで補う**方針とする |
-| 構成図 | [`docs/architecture.drawio`](./architecture.drawio) (draw.io / https://app.diagrams.net で開く) |
+| 構成図 | [`docs/architecture.drawio`](./architecture.drawio) (draw.io / https://app.diagrams.net で開く)。2ページ構成: ①論理構成 ②Azureデプロイ構成(§9.1) |
 
 ---
 
@@ -159,7 +159,7 @@ o11y-mcp/
 2. **MCP Server** — Query API の HTTP クライアントをインターフェース化し、tool ハンドラをユニットテスト。 ✅ 実装済み
 3. **Ingest** — OCB manifest によるビルド確認 + 結合テスト (OTLP 送信 → ClickHouse 反映を testcontainers で検証)。 ✅ 実装済み
 4. **IaC (Compose → Bicep)** — アプリが動く状態を確認してからデプロイ資材を整備。 ✅ Compose実装済み・Bicep実装済み (詳細は §9)
-5. **OSS 運用資材・監視パイプライン** — 最後に CONTRIBUTING / テンプレート / Dependabot / upstream-watch を整備。 ✅ 実装済み (ただしCI/リリース/upstream-watchの各ワークフローはリモートpush後の実行確認が未実施、§9.3同様の既知の制約)
+5. **OSS 運用資材・監視パイプライン** — 最後に CONTRIBUTING / テンプレート / Dependabot / upstream-watch を整備。 ✅ 実装済み (ただしCI/リリース/upstream-watchの各ワークフローはリモートpush後の実行確認が未実施、§9.4同様の既知の制約)
 
 ---
 
@@ -167,7 +167,13 @@ o11y-mcp/
 
 `infra/azure/` の実装にあたり、設計時点では想定していなかった制約がいくつか見つかったため、実際の対応を記録する。
 
-### 9.1 モジュール構成
+### 9.1 構成図
+[`docs/architecture.drawio`](./architecture.drawio) の2ページ目「Azure Deployment (Bicep)」に、
+実際にデプロイされるAzureリソースのトポロジー (Resource Group / VNet + Container Apps環境 /
+Storage Account / Key Vault / Managed Identity / Log Analytics+App Insights と、それぞれの
+接続関係・認証方式) を図示している。1ページ目 (論理構成) と対応付けて参照すること。
+
+### 9.2 モジュール構成
 `main.bicep` (サブスクリプションスコープ、リソースグループ作成) から以下をこの順で呼び出す:
 
 | モジュール | 責務 |
@@ -178,7 +184,7 @@ o11y-mcp/
 | `modules/storage.bicep` | Storage Account (Blob=コールド層 / Files=ClickHouseホット永続ボリューム) |
 | `modules/containerapps.bicep` | Container Apps環境 + clickhouse/ingest/query/mcpの4アプリ |
 
-### 9.2 ClickHouseのAzure向けカスタムイメージ
+### 9.3 ClickHouseのAzure向けカスタムイメージ
 Container Apps にはDocker Composeのようなホストファイルのボリュームマウント手段がないため、
 `deploy/compose/clickhouse/config.d/storage.xml` (MinIO/S3向け) と同じ役割の設定を
 `infra/azure/clickhouse/storage.xml` (Azure Blob Storage向け、`type: azure_blob_storage`) として用意し、
@@ -187,7 +193,7 @@ Container Apps にはDocker Composeのようなホストファイルのボリュ
 Container Appの環境変数から実行時に注入する (§4のTTL方針と同様、ボリューム名を
 組み込みdefaultポリシーと同じ `default` にする必要がある点も compose 版と共通)。
 
-### 9.2.1 ClickHouseコンテナのコスト試算とscale-to-zero化
+### 9.3.1 ClickHouseコンテナのコスト試算とscale-to-zero化
 当初 ClickHouse Container App は `minReplicas: 1` (常時起動) で設計していたが、
 Azure Retail Prices API (`prices.azure.com`) で japaneast の実単価を確認したところ、
 1vCPU/2GiBを24時間365日起動し続けるだけで **月額 約$70 (≈¥11,000)** となり、
@@ -201,10 +207,10 @@ NFR-C-03 (月額5,000円以下) を単独で超過することが判明した。
 無料枠 (1vCPU/2GiBの場合、vCPU秒・GiB秒とも月50時間相当で使い切る計算) の範囲内〜
 数百円程度に収まる見込み。トレードオフとしてゼロから起動する際のコールドスタート
 (数十秒程度、要件定義書のR-03相当) が発生し、その間はIngest/Query APIからの接続が
-一時的に失敗し得る。データはコンテナではなくAzure Files (§9.2) 上にあるため、
-スケールイン/アウトでデータが失われることはない。
+一時的に失敗し得る。データはコンテナではなくAzure Files (§9.2の`modules/storage.bicep`) 上に
+あるため、スケールイン/アウトでデータが失われることはない。
 
-### 9.3 既知の制約・follow-up
+### 9.4 既知の制約・follow-up
 - **OTLP/gRPC (FR-IN-02, Should) はAzure版では未対応。** Container AppsのConsumptionプラン環境では
   1アプリにつき1つのingress (targetPort) しか持てず、複数ポート公開 (`additionalPortMappings`) は
   ワークロードプロファイル環境限定のため。OTLP/HTTP (FR-IN-01, Must) のみ公開している。
@@ -214,7 +220,7 @@ NFR-C-03 (月額5,000円以下) を単独で超過することが判明した。
   ([https://learn.microsoft.com/azure/container-apps/jobs]) の追加が候補だが、スコープ超過のため見送った。
 - **自己o11y (Application Insights) は接続文字列の配線のみ。** Ingest/Query/MCPのアプリコード自体はまだ
   OTel SDKで自身を計装していないため、`APPLICATIONINSIGHTS_CONNECTION_STRING` は現状未使用。
-- **検証状況**: `az bicep build` によるコンパイル確認 (警告2件のみ、エラーなし) までは実施。
-  実サブスクリプションへの `az deployment sub what-if` 以降 (実リソース作成を伴わない検証) は
-  Azure CLI再認証待ちの状態で本書更新時点では未実施。実際の `azd up` によるデプロイ・動作確認は
-  さらに別途、費用が発生することを確認の上で実施する。
+- **検証状況**: `az bicep build` (警告2件のみ、エラーなし)、および実サブスクリプション
+  (`O11yMcp-sub`) への `az deployment sub what-if` (21リソースすべて `create`、エラーなし、
+  ロール割り当て1件のみ実行時解決値依存のため「unsupported」の分析対象外扱い) まで検証済み。
+  実際の `azd up` によるデプロイ・動作確認 (課金・実リソース作成を伴う) はまだ実施していない。

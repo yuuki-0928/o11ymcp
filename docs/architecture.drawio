@@ -1,78 +1,183 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<mxfile host="app.diagrams.net" agent="personal-dev-agent" version="24.7.0" type="device">
-  <diagram id="o11y-mcp-architecture" name="o11y-mcp Architecture">
-    <mxGraphModel dx="1400" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="826" math="0" shadow="0">
-      <root>
-        <mxCell id="0" />
-        <mxCell id="1" parent="0" />
+<mxfile host="65bd71144e">
+    <diagram id="o11y-mcp-architecture" name="o11y-mcp Architecture">
+        <mxGraphModel dx="450" dy="554" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="826" math="0" shadow="0">
+            <root>
+                <mxCell id="0"/>
+                <mxCell id="1" parent="0"/>
+                <mxCell id="grp-client" value="計装対象 (ユーザー環境)" style="rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;fillColor=#F5F5F5;strokeColor=#666666;fontSize=12;fontStyle=1;" parent="1" vertex="1">
+                    <mxGeometry x="40" y="40" width="240" height="220" as="geometry"/>
+                </mxCell>
+                <mxCell id="n-app" value="Application&#xa;(OTel SDK)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DAE8FC;strokeColor=#6C8EBF;fontSize=12;" parent="1" vertex="1">
+                    <mxGeometry x="70" y="90" width="180" height="50" as="geometry"/>
+                </mxCell>
+                <mxCell id="n-collector" value="OTel Collector&#xa;(任意/ユーザー側)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DAE8FC;strokeColor=#6C8EBF;dashed=1;fontSize=12;" parent="1" vertex="1">
+                    <mxGeometry x="70" y="170" width="180" height="50" as="geometry"/>
+                </mxCell>
+                <mxCell id="grp-stack" value="o11y-mcp スタック (Azure Container Apps / Docker Compose 共通イメージ)" style="rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;fillColor=#FFF2CC;strokeColor=#D6B656;fontSize=12;fontStyle=1;" parent="1" vertex="1">
+                    <mxGeometry x="360" y="20" width="560" height="420" as="geometry"/>
+                </mxCell>
+                <mxCell id="n-ingest" value="Ingest&#xa;(OCB Collector build:&#xa;otlpreceiver + clickhouseexporter)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D5E8D4;strokeColor=#82B366;fontSize=12;" parent="1" vertex="1">
+                    <mxGeometry x="400" y="80" width="220" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="n-clickhouse" value="ClickHouse&#xa;(Hot: SSD 7日 → Cold: Blob/MinIO 30日 → 削除)" style="shape=cylinder3;whiteSpace=wrap;html=1;fillColor=#D5E8D4;strokeColor=#82B366;boundedLbl=1;backgroundOutline=1;size=15;fontSize=12;" parent="1" vertex="1">
+                    <mxGeometry x="400" y="190" width="220" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="n-query" value="Query API&#xa;(REST/JSON, Go)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D5E8D4;strokeColor=#82B366;fontSize=12;" parent="1" vertex="1">
+                    <mxGeometry x="400" y="330" width="220" height="50" as="geometry"/>
+                </mxCell>
+                <mxCell id="n-mcp" value="MCP Server&#xa;(Streamable HTTP, Go)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D5E8D4;strokeColor=#82B366;fontSize=12;" parent="1" vertex="1">
+                    <mxGeometry x="670" y="330" width="220" height="50" as="geometry"/>
+                </mxCell>
+                <mxCell id="n-grafana" value="Grafana&#xa;(ClickHouse datasource, 任意)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F8CECC;strokeColor=#B85450;dashed=1;fontSize=12;" parent="1" vertex="1">
+                    <mxGeometry x="670" y="190" width="220" height="50" as="geometry"/>
+                </mxCell>
+                <mxCell id="n-llm" value="LLM / AI Agent&#xa;(Claude, Copilot 等)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E1D5E7;strokeColor=#9673A6;fontSize=12;" parent="1" vertex="1">
+                    <mxGeometry x="980" y="335" width="160" height="50" as="geometry"/>
+                </mxCell>
+                <mxCell id="e-app-collector" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;" parent="1" source="n-app" target="n-collector" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e-collector-ingest" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;" parent="1" source="n-collector" target="n-ingest" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <Array as="points">
+                            <mxPoint x="250" y="170"/>
+                            <mxPoint x="510" y="170"/>
+                        </Array>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="e-app-ingest" value="OTLP 直送" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;dashed=1;" parent="1" source="n-app" target="n-ingest" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e-ingest-ch" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;" parent="1" source="n-ingest" target="n-clickhouse" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e-query-ch" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;" parent="1" source="n-query" target="n-clickhouse" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e-mcp-query" value="HTTP" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;" parent="1" source="n-mcp" target="n-query" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e-grafana-ch" value="datasource" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;dashed=1;" parent="1" source="n-grafana" target="n-clickhouse" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e-llm-mcp" value="MCP (Streamable HTTP)" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;startArrow=block;endArrow=block;" parent="1" source="n-llm" target="n-mcp" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+            </root>
+        </mxGraphModel>
+    </diagram>
+    <diagram id="o11y-mcp-azure-architecture" name="Azure Deployment (Bicep)">
+        <mxGraphModel dx="450" dy="554" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1650" pageHeight="900" math="0" shadow="0">
+            <root>
+                <mxCell id="0"/>
+                <mxCell id="1" parent="0"/>
 
-        <!-- 計装対象 (ユーザー環境) -->
-        <mxCell id="grp-client" value="計装対象 (ユーザー環境)" style="rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;fillColor=#F5F5F5;strokeColor=#666666;fontSize=12;fontStyle=1;" vertex="1" parent="1">
-          <mxGeometry x="40" y="40" width="240" height="220" as="geometry" />
-        </mxCell>
-        <mxCell id="n-app" value="Application&#10;(OTel SDK)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DAE8FC;strokeColor=#6C8EBF;fontSize=12;" vertex="1" parent="1">
-          <mxGeometry x="70" y="90" width="180" height="50" as="geometry" />
-        </mxCell>
-        <mxCell id="n-collector" value="OTel Collector&#10;(任意/ユーザー側)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DAE8FC;strokeColor=#6C8EBF;dashed=1;fontSize=12;" vertex="1" parent="1">
-          <mxGeometry x="70" y="170" width="180" height="50" as="geometry" />
-        </mxCell>
+                <!-- 外部アクター -->
+                <mxCell id="a-grp-client" value="計装対象 (Azure外)" style="rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;fillColor=#F5F5F5;strokeColor=#666666;fontSize=12;fontStyle=1;" parent="1" vertex="1">
+                    <mxGeometry x="40" y="40" width="240" height="140" as="geometry"/>
+                </mxCell>
+                <mxCell id="a-app" value="Application&#xa;(OTel SDK)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DAE8FC;strokeColor=#6C8EBF;fontSize=12;" parent="1" vertex="1">
+                    <mxGeometry x="60" y="90" width="200" height="50" as="geometry"/>
+                </mxCell>
+                <mxCell id="a-developer" value="開発者 / 外部システム&#xa;(UC-02: Query API直接利用)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DAE8FC;strokeColor=#6C8EBF;fontSize=12;" parent="1" vertex="1">
+                    <mxGeometry x="40" y="220" width="240" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="a-llm" value="LLM / AI Agent&#xa;(Claude, Copilot 等)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E1D5E7;strokeColor=#9673A6;fontSize=12;" parent="1" vertex="1">
+                    <mxGeometry x="40" y="320" width="240" height="60" as="geometry"/>
+                </mxCell>
 
-        <!-- o11y-mcp スタック本体 -->
-        <mxCell id="grp-stack" value="o11y-mcp スタック (Azure Container Apps / Docker Compose 共通イメージ)" style="rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;fillColor=#FFF2CC;strokeColor=#D6B656;fontSize=12;fontStyle=1;" vertex="1" parent="1">
-          <mxGeometry x="360" y="20" width="560" height="420" as="geometry" />
-        </mxCell>
+                <!-- リソースグループ全体 -->
+                <mxCell id="a-grp-rg" value="Resource Group: rg-&lt;environmentName&gt; (japaneast)" style="rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;fillColor=#FFFFFF;strokeColor=#999999;fontSize=13;fontStyle=1;" parent="1" vertex="1">
+                    <mxGeometry x="340" y="20" width="1260" height="480" as="geometry"/>
+                </mxCell>
 
-        <mxCell id="n-ingest" value="Ingest&#10;(OCB Collector build:&#10;otlpreceiver + clickhouseexporter)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D5E8D4;strokeColor=#82B366;fontSize=12;" vertex="1" parent="1">
-          <mxGeometry x="400" y="80" width="220" height="60" as="geometry" />
-        </mxCell>
+                <!-- VNet + Container Apps 環境 -->
+                <mxCell id="a-grp-cae" value="VNet (10.0.0.0/16) + Container Apps 環境 (cae-xxx)" style="rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;fillColor=#FFF2CC;strokeColor=#D6B656;fontSize=12;fontStyle=1;" parent="1" vertex="1">
+                    <mxGeometry x="370" y="70" width="560" height="400" as="geometry"/>
+                </mxCell>
+                <mxCell id="a-ingest" value="Ingest&#xa;(external, HTTP :4318, scale 0→3)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D5E8D4;strokeColor=#82B366;fontSize=12;" parent="1" vertex="1">
+                    <mxGeometry x="400" y="110" width="500" height="55" as="geometry"/>
+                </mxCell>
+                <mxCell id="a-query" value="Query API&#xa;(external, HTTP :8080, scale 0→3)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D5E8D4;strokeColor=#82B366;fontSize=12;" parent="1" vertex="1">
+                    <mxGeometry x="400" y="185" width="500" height="55" as="geometry"/>
+                </mxCell>
+                <mxCell id="a-mcp" value="MCP Server&#xa;(external, HTTP :8081, scale 0→3)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D5E8D4;strokeColor=#82B366;fontSize=12;" parent="1" vertex="1">
+                    <mxGeometry x="400" y="260" width="500" height="55" as="geometry"/>
+                </mxCell>
+                <mxCell id="a-clickhouse" value="ClickHouse&#xa;(internal, TCP :9000, scale 0→1)&#xa;※ scale-to-zero、TCPスケールルール必須" style="shape=cylinder3;whiteSpace=wrap;html=1;fillColor=#D5E8D4;strokeColor=#82B366;boundedLbl=1;backgroundOutline=1;size=15;fontSize=12;" parent="1" vertex="1">
+                    <mxGeometry x="400" y="340" width="500" height="110" as="geometry"/>
+                </mxCell>
 
-        <mxCell id="n-clickhouse" value="ClickHouse&#10;(Hot: SSD 7日 → Cold: Blob/MinIO 30日 → 削除)" style="shape=cylinder3;whiteSpace=wrap;html=1;fillColor=#D5E8D4;strokeColor=#82B366;boundedLbl=1;backgroundOutline=1;size=15;fontSize=12;" vertex="1" parent="1">
-          <mxGeometry x="400" y="190" width="220" height="80" as="geometry" />
-        </mxCell>
+                <!-- Storage Account -->
+                <mxCell id="a-grp-storage" value="Storage Account (st-xxx, Standard_LRS)" style="rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;fillColor=#F8CECC;strokeColor=#B85450;fontSize=12;fontStyle=1;" parent="1" vertex="1">
+                    <mxGeometry x="970" y="70" width="580" height="160" as="geometry"/>
+                </mxCell>
+                <mxCell id="a-blob" value="Blob Container&#xa;o11y-mcp-cold (Cool tier)&#xa;= ClickHouse Cold Tier" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#B85450;fontSize=11;" parent="1" vertex="1">
+                    <mxGeometry x="1000" y="110" width="250" height="90" as="geometry"/>
+                </mxCell>
+                <mxCell id="a-files" value="Azure Files&#xa;clickhouse-data (100GiB)&#xa;= ClickHouse Hot Volume" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#B85450;fontSize=11;" parent="1" vertex="1">
+                    <mxGeometry x="1270" y="110" width="250" height="90" as="geometry"/>
+                </mxCell>
 
-        <mxCell id="n-query" value="Query API&#10;(REST/JSON, Go)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D5E8D4;strokeColor=#82B366;fontSize=12;" vertex="1" parent="1">
-          <mxGeometry x="400" y="330" width="220" height="50" as="geometry" />
-        </mxCell>
+                <!-- Key Vault / Managed Identity -->
+                <mxCell id="a-keyvault" value="Key Vault (kv-xxx, RBAC)&#xa;secrets: clickhouse-password&#xa;query-api-key / mcp-api-key" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E1D5E7;strokeColor=#9673A6;fontSize=11;" parent="1" vertex="1">
+                    <mxGeometry x="970" y="260" width="280" height="90" as="geometry"/>
+                </mxCell>
+                <mxCell id="a-identity" value="Managed Identity (id-xxx)&#xa;User Assigned&#xa;(4アプリ共通で割当て)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E1D5E7;strokeColor=#9673A6;fontSize=11;" parent="1" vertex="1">
+                    <mxGeometry x="1270" y="260" width="250" height="90" as="geometry"/>
+                </mxCell>
 
-        <mxCell id="n-mcp" value="MCP Server&#10;(Streamable HTTP, Go)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D5E8D4;strokeColor=#82B366;fontSize=12;" vertex="1" parent="1">
-          <mxGeometry x="670" y="330" width="220" height="50" as="geometry" />
-        </mxCell>
+                <!-- 監視 -->
+                <mxCell id="a-monitor" value="Log Analytics Workspace (log-xxx) + Application Insights (appi-xxx)&#xa;※ 自己o11y。アプリ側の計装(OTel SDK)は現状follow-up" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#666666;fontSize=11;" parent="1" vertex="1">
+                    <mxGeometry x="970" y="380" width="580" height="80" as="geometry"/>
+                </mxCell>
 
-        <mxCell id="n-grafana" value="Grafana&#10;(ClickHouse datasource, 任意)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F8CECC;strokeColor=#B85450;dashed=1;fontSize=12;" vertex="1" parent="1">
-          <mxGeometry x="670" y="190" width="220" height="50" as="geometry" />
-        </mxCell>
+                <!-- Edges: 外部 -> スタック -->
+                <mxCell id="ae-app-ingest" value="OTLP/HTTP" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;" parent="1" source="a-app" target="a-ingest" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="ae-dev-query" value="HTTPS + API Key" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;" parent="1" source="a-developer" target="a-query" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="ae-llm-mcp" value="MCP (Streamable HTTP)" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;startArrow=block;endArrow=block;" parent="1" source="a-llm" target="a-mcp" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
 
-        <!-- LLM / AI Agent -->
-        <mxCell id="n-llm" value="LLM / AI Agent&#10;(Claude, Copilot 等)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E1D5E7;strokeColor=#9673A6;fontSize=12;" vertex="1" parent="1">
-          <mxGeometry x="980" y="335" width="160" height="50" as="geometry" />
-        </mxCell>
+                <!-- Edges: スタック内部 -->
+                <mxCell id="ae-mcp-query" value="HTTPS + API Key" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;" parent="1" source="a-mcp" target="a-query" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="ae-ingest-ch" value="TCP :9000" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;" parent="1" source="a-ingest" target="a-clickhouse" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="ae-query-ch" value="TCP :9000" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;" parent="1" source="a-query" target="a-clickhouse" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
 
-        <!-- Edges -->
-        <mxCell id="e-app-collector" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;" edge="1" parent="1" source="n-app" target="n-collector">
-          <mxGeometry relative="1" as="geometry" />
-        </mxCell>
-        <mxCell id="e-collector-ingest" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;" edge="1" parent="1" source="n-collector" target="n-ingest">
-          <mxGeometry relative="1" as="geometry" />
-        </mxCell>
-        <mxCell id="e-app-ingest" value="OTLP 直送" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;dashed=1;" edge="1" parent="1" source="n-app" target="n-ingest">
-          <mxGeometry relative="1" as="geometry" />
-        </mxCell>
-        <mxCell id="e-ingest-ch" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;" edge="1" parent="1" source="n-ingest" target="n-clickhouse">
-          <mxGeometry relative="1" as="geometry" />
-        </mxCell>
-        <mxCell id="e-query-ch" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;" edge="1" parent="1" source="n-query" target="n-clickhouse">
-          <mxGeometry relative="1" as="geometry" />
-        </mxCell>
-        <mxCell id="e-mcp-query" value="HTTP" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;" edge="1" parent="1" source="n-mcp" target="n-query">
-          <mxGeometry relative="1" as="geometry" />
-        </mxCell>
-        <mxCell id="e-grafana-ch" value="datasource" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;dashed=1;" edge="1" parent="1" source="n-grafana" target="n-clickhouse">
-          <mxGeometry relative="1" as="geometry" />
-        </mxCell>
-        <mxCell id="e-llm-mcp" value="MCP (Streamable HTTP)" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;startArrow=block;endArrow=block;" edge="1" parent="1" source="n-llm" target="n-mcp">
-          <mxGeometry relative="1" as="geometry" />
-        </mxCell>
-      </root>
-    </mxGraphModel>
-  </diagram>
+                <!-- Edges: ClickHouse -> ストレージ -->
+                <mxCell id="ae-ch-files" value="volume mount (hot)" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;" parent="1" source="a-clickhouse" target="a-files" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="ae-ch-blob" value="azure_blob_storage disk (cold)" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;dashed=1;" parent="1" source="a-clickhouse" target="a-blob" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+
+                <!-- Edges: Managed Identity / RBAC -->
+                <mxCell id="ae-identity-cae" value="全アプリに割当て" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;dashed=1;" parent="1" source="a-identity" target="a-grp-cae" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="ae-identity-kv" value="RBAC: Key Vault Secrets User" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;dashed=1;" parent="1" source="a-identity" target="a-keyvault" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="ae-identity-storage" value="RBAC: Storage Blob Data Contributor" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;dashed=1;" parent="1" source="a-identity" target="a-grp-storage" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+
+                <!-- Edges: ログ -->
+                <mxCell id="ae-cae-monitor" value="ログ/メトリクス" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;dashed=1;" parent="1" source="a-grp-cae" target="a-monitor" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+            </root>
+        </mxGraphModel>
+    </diagram>
 </mxfile>
