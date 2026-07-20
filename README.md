@@ -4,7 +4,7 @@
 
 [English README](./README.en.md)
 
-> **現在のステータス**: Ingest / Query API / MCP Server の実装と、Docker Compose での起動・動作確認まで完了しています。Azure (Bicep + azd) はこれから整備します。詳細は [`docs/requirements.md`](./docs/requirements.md) / [`docs/design.md`](./docs/design.md) を参照してください。
+> **現在のステータス**: Ingest / Query API / MCP Server の実装と Docker Compose での動作確認、Azure Bicep (`az deployment sub what-if` による検証まで) が完了しています。実際の `azd up` によるデプロイ確認とOSS運用資材(CONTRIBUTING等)はこれからです。詳細は [`docs/requirements.md`](./docs/requirements.md) / [`docs/design.md`](./docs/design.md) を参照してください。
 
 ## 特徴
 
@@ -67,11 +67,20 @@ docker compose up -d --build
 docker compose down -v
 ```
 
-Azure へのデプロイ (未整備、今後 Bicep + azd で対応予定):
+Azure へのデプロイ (Bicep は用意済み。`azd up` での実デプロイはまだ実施していません):
 
 ```bash
 azd auth login
 azd up
+```
+
+`infra/azure/` の詳細 (モジュール構成・既知の制約) は [`docs/design.md`](./docs/design.md) §9 を参照してください。
+デプロイ前に構文・整合性だけ確認したい場合:
+
+```bash
+az bicep build --file infra/azure/main.bicep
+az deployment sub what-if --location japaneast --template-file infra/azure/main.bicep \
+  --parameters environmentName=<任意の名前> clickhousePassword=<パスワード> queryApiKey=<キー> mcpApiKey=<キー>
 ```
 
 ## ディレクトリ構成
@@ -82,10 +91,11 @@ o11y-mcp/
 │   ├── ingest/   # OTLP受信 (OpenTelemetry Collector Builder による構成)
 │   ├── query/    # Query API (Go, REST)
 │   └── mcp/      # MCP Server (Go, Streamable HTTP)
-├── infra/azure/  # Bicep (モジュール化)
+├── infra/azure/  # Bicep (モジュール化) + Azure向けClickHouseカスタムイメージ
 ├── deploy/compose/ # Docker Compose 定義
+├── azure.yaml     # azd プロジェクト定義
 ├── docs/          # 要件定義書・設計書・構成図
-└── .github/       # CI / リリース自動化 / 依存・上流監視ワークフロー
+└── .github/       # CI / リリース自動化 / 依存・上流監視ワークフロー (未整備)
 ```
 
 ## 技術スタック
@@ -109,7 +119,8 @@ Go / OpenTelemetry Collector Builder / ClickHouse / MCP 公式 Go SDK / Docker C
 
 ## 既知の制約 / TODO
 
-- Azure (Bicep + azd) は未整備 ([`docs/design.md`](./docs/design.md) §8 参照)
+- Azure は Bicep 作成・`what-if`検証まで完了。実際の `azd up` によるデプロイ確認はこれから ([`docs/design.md`](./docs/design.md) §9 参照)
+- Azure版はOTLP/gRPC未対応 (Container Apps Consumptionプランの制約、§9.3参照)、Azure版のTTL/storage_policy migrationも手動適用が必要
 - Entra ID 認証は v1.0 のスコープ外 (v1.1以降で再検討)
 - ダッシュボード UI は自作せず Grafana + ClickHouse datasource で代替
 - OSS運用資材 (CONTRIBUTING/Issue・PRテンプレート/リリース自動化/依存監視パイプライン) は未整備

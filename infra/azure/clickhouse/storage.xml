@@ -1,0 +1,39 @@
+<!--
+  Azure版のHot(Container Apps + Azure Filesの永続ボリューム)/Cold(Blob Storage)構成 (FR-ST-03)。
+  deploy/compose/clickhouse/config.d/storage.xml のAzure版に相当する。
+
+  account_key 等の値は from_env で実行時にContainer Appの環境変数から注入する
+  (docs/design.md 通り、ClickHouse公式の from_env 属性を使用。一次情報:
+  https://clickhouse.com/docs/operations/configuration-files)。
+
+  ボリューム名を "default" にしている理由は deploy/compose 側と同じ:
+  ALTER TABLE ... MODIFY SETTING storage_policy で組み込みdefaultポリシーから
+  切り替える際、ClickHouse は「旧ポリシーの各ボリュームが同名で新ポリシーにも
+  存在すること」を要求する (src/Disks/StoragePolicy.cpp の checkCompatibleWith)。
+-->
+<clickhouse>
+    <storage_configuration>
+        <disks>
+            <cold>
+                <type>azure_blob_storage</type>
+                <storage_account_url from_env="AZURE_STORAGE_ACCOUNT_URL"/>
+                <container_name from_env="AZURE_STORAGE_CONTAINER_NAME"/>
+                <container_already_exists>true</container_already_exists>
+                <account_name from_env="AZURE_STORAGE_ACCOUNT_NAME"/>
+                <account_key from_env="AZURE_STORAGE_ACCOUNT_KEY"/>
+            </cold>
+        </disks>
+        <policies>
+            <hot_cold>
+                <volumes>
+                    <default>
+                        <disk>default</disk>
+                    </default>
+                    <cold>
+                        <disk>cold</disk>
+                    </cold>
+                </volumes>
+            </hot_cold>
+        </policies>
+    </storage_configuration>
+</clickhouse>

@@ -1,0 +1,28 @@
+# Azure Developer CLI (azd) のプロジェクト定義 (FR-OP-02: `azd up` 一発デプロイ)。
+# 各 service は infra/azure/modules/containerapps.bicep 側の
+# tags.'azd-service-name' と同じキーで対応付ける。
+name: o11y-mcp
+metadata:
+  template: o11y-mcp@0.1.0
+
+infra:
+  path: infra/azure
+  module: main
+
+services:
+  ingest:
+    project: ./apps/ingest
+    language: docker
+    host: containerapp
+  query:
+    project: ./apps/query
+    language: docker
+    host: containerapp
+  mcp:
+    project: ./apps/mcp
+    language: docker
+    host: containerapp
+  clickhouse:
+    project: ./infra/azure/clickhouse
+    language: docker
+    host: containerapp

@@ -110,22 +110,31 @@
 ```
 o11y-mcp/
 ├── apps/
-│   ├── ingest/     # OCB manifest + clickhouseexporter 設定 + スキーマ/TTL migration
-│   ├── query/       # Go製 REST API (Query API)
-│   └── mcp/         # Go製 MCP Server (Streamable HTTP)
+│   ├── ingest/       # OCB manifest + 生成物 + clickhouseexporter設定 + 結合テスト + Dockerfile
+│   ├── query/        # Go製 REST API (Query API) + Dockerfile
+│   └── mcp/          # Go製 MCP Server (Streamable HTTP) + Dockerfile
 ├── infra/
 │   └── azure/
-│       └── modules/ # Bicep モジュール (network / storage / container-apps / security 等)
+│       ├── main.bicep          # azdエントリポイント (サブスクリプションスコープ)
+│       ├── main.parameters.json
+│       ├── clickhouse/         # Azure向けClickHouseカスタムイメージ (Dockerfile + storage.xml)
+│       └── modules/            # network / monitoring / security / storage / containerapps
 ├── deploy/
-│   └── compose/     # docker-compose.yml (一次デプロイ手段)
-├── docs/             # 要件定義書・設計書・構成図
+│   └── compose/
+│       ├── docker-compose.yml
+│       ├── clickhouse/config.d/    # Hot/Cold storage policy (MinIO向け)
+│       ├── clickhouse-init/        # TTL/storage_policy migration (起動時に自動適用)
+│       ├── minio-init/             # コールド用バケットの初期化
+│       └── grafana/provisioning/   # ClickHouseデータソース自動登録
+├── azure.yaml         # azd プロジェクト定義
+├── docs/              # 要件定義書・設計書・構成図
 ├── .github/
-│   ├── workflows/    # CI, リリース自動化, 依存/上流監視
-│   └── ISSUE_TEMPLATE/
-├── CONTRIBUTING.md
-├── CODE_OF_CONDUCT.md
-├── SECURITY.md
-├── LICENSE (Apache-2.0)
+│   ├── workflows/     # CI, リリース自動化, 依存/上流監視 (未整備)
+│   └── ISSUE_TEMPLATE/ (未整備)
+├── CONTRIBUTING.md (未整備)
+├── CODE_OF_CONDUCT.md (未整備)
+├── SECURITY.md (未整備)
+├── LICENSE (Apache-2.0, 未整備)
 └── README.md (JP) / README.en.md (EN)
 ```
 
@@ -142,14 +151,53 @@ o11y-mcp/
 
 ---
 
-## 8. 実装順序の提案 (TDD)
+## 8. 実装順序 (TDD)
 
-依存関係が少なく、テストしやすい順に実装することを提案する:
+依存関係が少なく、テストしやすい順に実装する。
 
-1. **Query API** — 純粋な Go ロジック (ハンドラ + ClickHouse クエリ層) から着手。ClickHouse への依存はリポジトリ層でインターフェース化し、ユニットテストではモック、結合テストでは実 ClickHouse (testcontainers) を使う。
-2. **MCP Server** — Query API の HTTP クライアントをインターフェース化し、tool ハンドラをユニットテスト。
-3. **Ingest** — OCB manifest によるビルド確認 + 結合テスト (OTLP 送信 → ClickHouse 反映を testcontainers で検証)。
-4. **IaC (Compose → Bicep)** — アプリが動く状態を確認してからデプロイ資材を整備。
-5. **OSS 運用資材・監視パイプライン** — 最後に CONTRIBUTING / テンプレート / Dependabot / upstream-watch を整備。
+1. **Query API** — 純粋な Go ロジック (ハンドラ + ClickHouse クエリ層) から着手。ClickHouse への依存はリポジトリ層でインターフェース化し、ユニットテストではモック、結合テストでは実 ClickHouse (testcontainers) を使う。 ✅ 実装済み
+2. **MCP Server** — Query API の HTTP クライアントをインターフェース化し、tool ハンドラをユニットテスト。 ✅ 実装済み
+3. **Ingest** — OCB manifest によるビルド確認 + 結合テスト (OTLP 送信 → ClickHouse 反映を testcontainers で検証)。 ✅ 実装済み
+4. **IaC (Compose → Bicep)** — アプリが動く状態を確認してからデプロイ資材を整備。 ✅ Compose実装済み・Bicep実装済み (詳細は §9)
+5. **OSS 運用資材・監視パイプライン** — 最後に CONTRIBUTING / テンプレート / Dependabot / upstream-watch を整備。 ⬜ 未着手
 
-どのコンポーネントから着手するかはユーザーと相談の上で決定する。
+---
+
+## 9. Azure (Bicep + azd) 実装メモ
+
+`infra/azure/` の実装にあたり、設計時点では想定していなかった制約がいくつか見つかったため、実際の対応を記録する。
+
+### 9.1 モジュール構成
+`main.bicep` (サブスクリプションスコープ、リソースグループ作成) から以下をこの順で呼び出す:
+
+| モジュール | 責務 |
+| :--- | :--- |
+| `modules/monitoring.bicep` | Log Analytics Workspace + Application Insights |
+| `modules/network.bicep` | VNet + Container Apps用サブネット (delegation付き) |
+| `modules/security.bicep` | Key Vault (RBAC認可) + User Assigned Managed Identity + シークレット3種 + ロール割り当て |
+| `modules/storage.bicep` | Storage Account (Blob=コールド層 / Files=ClickHouseホット永続ボリューム) |
+| `modules/containerapps.bicep` | Container Apps環境 + clickhouse/ingest/query/mcpの4アプリ |
+
+### 9.2 ClickHouseのAzure向けカスタムイメージ
+Container Apps にはDocker Composeのようなホストファイルのボリュームマウント手段がないため、
+`deploy/compose/clickhouse/config.d/storage.xml` (MinIO/S3向け) と同じ役割の設定を
+`infra/azure/clickhouse/storage.xml` (Azure Blob Storage向け、`type: azure_blob_storage`) として用意し、
+`infra/azure/clickhouse/Dockerfile` で公式ClickHouseイメージに焼き込む。
+アカウントキー等の秘密情報はファイルに含めず、ClickHouse公式の `from_env` 属性で
+Container Appの環境変数から実行時に注入する (§4のTTL方針と同様、ボリューム名を
+組み込みdefaultポリシーと同じ `default` にする必要がある点も compose 版と共通)。
+
+### 9.3 既知の制約・follow-up
+- **OTLP/gRPC (FR-IN-02, Should) はAzure版では未対応。** Container AppsのConsumptionプラン環境では
+  1アプリにつき1つのingress (targetPort) しか持てず、複数ポート公開 (`additionalPortMappings`) は
+  ワークロードプロファイル環境限定のため。OTLP/HTTP (FR-IN-01, Must) のみ公開している。
+- **TTL/ストレージポリシーのmigration (`deploy/compose/clickhouse-init/` 相当) はAzure版で自動化していない。**
+  Ingestがテーブルを自動作成した後、`deploy/compose/clickhouse-init/apply-storage-policy.sql` と同内容を
+  手動で (`az containerapp exec` 等から) 一度適用する必要がある。自動化するには Container Apps Jobs
+  ([https://learn.microsoft.com/azure/container-apps/jobs]) の追加が候補だが、スコープ超過のため見送った。
+- **自己o11y (Application Insights) は接続文字列の配線のみ。** Ingest/Query/MCPのアプリコード自体はまだ
+  OTel SDKで自身を計装していないため、`APPLICATIONINSIGHTS_CONNECTION_STRING` は現状未使用。
+- **検証状況**: `az bicep build` によるコンパイル確認 (警告2件のみ、エラーなし) までは実施。
+  実サブスクリプションへの `az deployment sub what-if` 以降 (実リソース作成を伴わない検証) は
+  Azure CLI再認証待ちの状態で本書更新時点では未実施。実際の `azd up` によるデプロイ・動作確認は
+  さらに別途、費用が発生することを確認の上で実施する。
