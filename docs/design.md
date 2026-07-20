@@ -187,6 +187,23 @@ Container Apps にはDocker Composeのようなホストファイルのボリュ
 Container Appの環境変数から実行時に注入する (§4のTTL方針と同様、ボリューム名を
 組み込みdefaultポリシーと同じ `default` にする必要がある点も compose 版と共通)。
 
+### 9.2.1 ClickHouseコンテナのコスト試算とscale-to-zero化
+当初 ClickHouse Container App は `minReplicas: 1` (常時起動) で設計していたが、
+Azure Retail Prices API (`prices.azure.com`) で japaneast の実単価を確認したところ、
+1vCPU/2GiBを24時間365日起動し続けるだけで **月額 約$70 (≈¥11,000)** となり、
+NFR-C-03 (月額5,000円以下) を単独で超過することが判明した。
+
+対応として `minReplicas: 0` の scale-to-zero に変更した。ただしTCPトランスポート
+(ClickHouseネイティブプロトコル) は既定でスケールルールを持たないため、明示的に
+`tcp` スケールルール (`concurrentConnections`) と `activeRevisionsMode: 'single'`
+(非HTTPスケールルール使用時の必須設定、Microsoft Learn "scale-app" ドキュメントで確認)
+を追加している。個人利用程度のアクセス頻度であれば、Container Apps Consumptionの
+無料枠 (1vCPU/2GiBの場合、vCPU秒・GiB秒とも月50時間相当で使い切る計算) の範囲内〜
+数百円程度に収まる見込み。トレードオフとしてゼロから起動する際のコールドスタート
+(数十秒程度、要件定義書のR-03相当) が発生し、その間はIngest/Query APIからの接続が
+一時的に失敗し得る。データはコンテナではなくAzure Files (§9.2) 上にあるため、
+スケールイン/アウトでデータが失われることはない。
+
 ### 9.3 既知の制約・follow-up
 - **OTLP/gRPC (FR-IN-02, Should) はAzure版では未対応。** Container AppsのConsumptionプラン環境では
   1アプリにつき1つのingress (targetPort) しか持てず、複数ポート公開 (`additionalPortMappings`) は

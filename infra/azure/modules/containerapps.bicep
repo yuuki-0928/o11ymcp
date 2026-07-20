@@ -88,15 +88,35 @@ resource clickhouseApp 'Microsoft.App/containerApps@2024-03-01' = {
         transport: 'tcp'
         targetPort: 9000
       }
+      // 非HTTPのスケールルール (tcp) を使う場合、Microsoft Learn (scale-app) の記載により
+      // activeRevisionsMode を single にする必要がある。
+      activeRevisionsMode: 'single'
       secrets: [
         { name: 'clickhouse-password', keyVaultUrl: clickhousePasswordSecretUrl, identity: managedIdentityId }
         { name: 'storage-account-key', value: storageAccount.listKeys().keys[0].value }
       ]
     }
     template: {
+      // NFR-C-01 (常時起動リソースの最小化)。当初 minReplicas=1 (常時起動) にしていたが、
+      // Azure Retail Prices API で試算した結果 1vCPU/2GiB 24時間稼働だけで月$70超と
+      // コスト目標(月5,000円)を大幅に超過することが判明したため scale-to-zero に変更した。
+      // トレードオフ: 0台からの起動時にコールドスタート(数十秒程度)が発生し、その間は
+      // Ingest/Query からの接続が失敗し得る (要件定義書 R-03 相当のリスクとして許容する)。
+      // データはコンテナではなく Azure Files (clickhouseStorage) 側にあるため、
+      // 0台に縮退してもデータ自体は失われない。
       scale: {
-        minReplicas: 1
+        minReplicas: 0
         maxReplicas: 1
+        rules: [
+          {
+            name: 'tcp-scaling'
+            tcp: {
+              metadata: {
+                concurrentConnections: '10'
+              }
+            }
+          }
+        ]
       }
       volumes: [
         {
