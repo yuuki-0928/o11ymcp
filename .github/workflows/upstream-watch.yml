@@ -1,0 +1,62 @@
+# FR-MON-02: OTel Collector / MCP Go SDK の上流最新版を週次で確認し、
+# 現行採用バージョンと差分があれば Issue を自動起票する。
+#
+# 注記: このワークフローはGitHub Actions上でのcron実行を前提としており、
+# リモートリポジトリへのpush前のため実行環境での動作確認はまだ行っていない。
+# 初回pushの後、`gh workflow run upstream-watch.yml` で手動実行して検証すること。
+name: Upstream Watch
+
+on:
+  schedule:
+    - cron: "0 3 * * 1" # 毎週月曜 03:00 UTC
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Check for upstream version updates
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          # apps/ingest/builder-config.yaml に固定しているOTel Collectorのバージョン
+          current_otel=$(grep -m1 'go.opentelemetry.io/collector/receiver/otlpreceiver' apps/ingest/builder-config.yaml \
+            | sed -E 's/.*v([0-9]+\.[0-9]+\.[0-9]+).*/\1/')
+          latest_otel=$(curl -s "https://proxy.golang.org/go.opentelemetry.io/collector/receiver/otlpreceiver/@latest" \
+            | sed -E 's/.*"Version":"v([0-9.]+)".*/\1/')
+
+          # apps/mcp/go.mod に固定しているMCP公式Go SDKのバージョン
+          current_mcp=$(grep -m1 'github.com/modelcontextprotocol/go-sdk ' apps/mcp/go.mod \
+            | awk '{print $NF}' | sed 's/^v//')
+          latest_mcp=$(curl -s "https://proxy.golang.org/github.com/modelcontextprotocol/go-sdk/@latest" \
+            | sed -E 's/.*"Version":"v([0-9.]+)".*/\1/')
+
+          body=""
+          if [ "$current_otel" != "$latest_otel" ]; then
+            body="${body}- OpenTelemetry Collector: 現在 v${current_otel} → 最新 v${latest_otel} (apps/ingest/builder-config.yaml)\n"
+          fi
+          if [ "$current_mcp" != "$latest_mcp" ]; then
+            body="${body}- MCP 公式 Go SDK: 現在 v${current_mcp} → 最新 v${latest_mcp} (apps/mcp/go.mod)\n"
+          fi
+
+          if [ -z "$body" ]; then
+            echo "No upstream updates detected."
+            exit 0
+          fi
+
+          existing=$(gh issue list --label upstream-watch --state open --json number --jq '.[0].number // empty')
+          if [ -n "$existing" ]; then
+            echo "Open upstream-watch issue #$existing already exists; skipping."
+            exit 0
+          fi
+
+          printf '%b' "$body" | gh issue create \
+            --title "Upstream更新の追随チェック: 差分あり" \
+            --label upstream-watch \
+            --body-file -

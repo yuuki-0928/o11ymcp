@@ -1,0 +1,44 @@
+# FR-MON-01: 依存パッケージの脆弱性/更新を自動検知し、更新PRを起票する。
+# apps/ingest, apps/query, apps/mcp はそれぞれ独立したGoモジュールなので、
+# directory を分けて個別に監視する。
+version: 2
+updates:
+  - package-ecosystem: "gomod"
+    directory: "/apps/ingest"
+    schedule:
+      interval: "weekly"
+
+  - package-ecosystem: "gomod"
+    directory: "/apps/query"
+    schedule:
+      interval: "weekly"
+
+  - package-ecosystem: "gomod"
+    directory: "/apps/mcp"
+    schedule:
+      interval: "weekly"
+
+  - package-ecosystem: "docker"
+    directory: "/apps/ingest"
+    schedule:
+      interval: "weekly"
+
+  - package-ecosystem: "docker"
+    directory: "/apps/query"
+    schedule:
+      interval: "weekly"
+
+  - package-ecosystem: "docker"
+    directory: "/apps/mcp"
+    schedule:
+      interval: "weekly"
+
+  - package-ecosystem: "docker"
+    directory: "/infra/azure/clickhouse"
+    schedule:
+      interval: "weekly"
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"

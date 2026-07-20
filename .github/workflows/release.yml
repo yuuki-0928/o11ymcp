@@ -1,0 +1,63 @@
+# FR-OSS-02: タグpushを契機に SemVer検証 → GHCRへバージョン付きイメージpush → GitHub Release作成、を自動化する。
+# CHANGELOGはGitHub標準の自動生成リリースノート機能で賄い、専用ツールの追加導入は見送っている
+# (依存を増やさずFR-OSS-01の「運用の楽さ」を優先)。
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  validate-tag:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate SemVer tag (vX.Y.Z)
+        run: |
+          if [[ ! "${{ github.ref_name }}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::Tag '${{ github.ref_name }}' is not a valid SemVer tag (expected vX.Y.Z)"
+            exit 1
+          fi
+
+  build-push:
+    needs: validate-tag
+    strategy:
+      fail-fast: false
+      matrix:
+        service: [ingest, query, mcp]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: docker/setup-buildx-action@v4
+
+      - uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: docker/build-push-action@v7
+        with:
+          context: apps/${{ matrix.service }}
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository }}/${{ matrix.service }}:${{ github.ref_name }}
+            ghcr.io/${{ github.repository }}/${{ matrix.service }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  github-release:
+    needs: build-push
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: softprops/action-gh-release@v3
+        with:
+          generate_release_notes: true

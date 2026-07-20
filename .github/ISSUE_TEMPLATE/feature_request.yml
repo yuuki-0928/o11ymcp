@@ -1,0 +1,28 @@
+name: 機能要望
+description: 新しい機能や改善を提案する
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: 解決したい課題
+      description: どんな困りごと・不便さが背景にありますか。
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: 提案内容
+      description: どう解決したいか、具体案があれば書いてください。
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: 検討した代替案 (あれば)
+  - type: checkboxes
+    id: requirements-impact
+    attributes:
+      label: 要件定義書 (docs/requirements.md) への影響
+      options:
+        - label: この提案は既存の要件定義書の範囲外の変更を含む (スコープ変更が必要かもしれない)

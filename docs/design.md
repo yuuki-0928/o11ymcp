@@ -159,7 +159,7 @@ o11y-mcp/
 2. **MCP Server** — Query API の HTTP クライアントをインターフェース化し、tool ハンドラをユニットテスト。 ✅ 実装済み
 3. **Ingest** — OCB manifest によるビルド確認 + 結合テスト (OTLP 送信 → ClickHouse 反映を testcontainers で検証)。 ✅ 実装済み
 4. **IaC (Compose → Bicep)** — アプリが動く状態を確認してからデプロイ資材を整備。 ✅ Compose実装済み・Bicep実装済み (詳細は §9)
-5. **OSS 運用資材・監視パイプライン** — 最後に CONTRIBUTING / テンプレート / Dependabot / upstream-watch を整備。 ⬜ 未着手
+5. **OSS 運用資材・監視パイプライン** — 最後に CONTRIBUTING / テンプレート / Dependabot / upstream-watch を整備。 ✅ 実装済み (ただしCI/リリース/upstream-watchの各ワークフローはリモートpush後の実行確認が未実施、§9.3同様の既知の制約)
 
 ---
 

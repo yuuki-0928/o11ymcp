@@ -115,7 +115,9 @@ Go / OpenTelemetry Collector Builder / ClickHouse / MCP 公式 Go SDK / Docker C
 
 ## コントリビュート
 
-準備中です ([`CONTRIBUTING.md`](./CONTRIBUTING.md) を今後整備します)。
+[`CONTRIBUTING.md`](./CONTRIBUTING.md) を参照してください。バグ報告・機能要望は
+[Issueテンプレート](.github/ISSUE_TEMPLATE/) から、セキュリティ報告は [`SECURITY.md`](./SECURITY.md) の
+手順に従ってください。行動規範は [`CODE_OF_CONDUCT.md`](./CODE_OF_CONDUCT.md) を参照してください。
 
 ## 既知の制約 / TODO
 
@@ -123,4 +125,4 @@ Go / OpenTelemetry Collector Builder / ClickHouse / MCP 公式 Go SDK / Docker C
 - Azure版はOTLP/gRPC未対応 (Container Apps Consumptionプランの制約、§9.3参照)、Azure版のTTL/storage_policy migrationも手動適用が必要
 - Entra ID 認証は v1.0 のスコープ外 (v1.1以降で再検討)
 - ダッシュボード UI は自作せず Grafana + ClickHouse datasource で代替
-- OSS運用資材 (CONTRIBUTING/Issue・PRテンプレート/リリース自動化/依存監視パイプライン) は未整備
+- CI/リリース/依存監視ワークフロー (`.github/workflows/`) はファイル作成済みだが、リモートリポジトリへのpush・実行確認はまだ行っていない

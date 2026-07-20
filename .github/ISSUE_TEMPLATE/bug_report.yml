@@ -1,0 +1,44 @@
+name: バグ報告
+description: 期待した挙動と異なる動作を報告する
+labels: ["bug"]
+body:
+  - type: textarea
+    id: summary
+    attributes:
+      label: 何が起きたか
+      description: 期待した挙動と、実際の挙動を書いてください。
+    validations:
+      required: true
+  - type: dropdown
+    id: component
+    attributes:
+      label: 対象コンポーネント
+      options:
+        - apps/ingest
+        - apps/query
+        - apps/mcp
+        - deploy/compose
+        - infra/azure
+        - その他/不明
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: 再現手順
+      description: 最小限の再現手順を番号付きで書いてください。
+      placeholder: |
+        1. docker compose up -d --build
+        2. curl ...
+        3. ...
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: 関連するログ・エラーメッセージ
+      render: shell
+  - type: input
+    id: version
+    attributes:
+      label: バージョン / コミットハッシュ
