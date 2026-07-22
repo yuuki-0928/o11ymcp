@@ -10,6 +10,7 @@ param keyVaultUri string
 param storageAccountName string
 param clickhouseFileShareName string
 param coldContainerName string
+param acrLoginServer string
 
 param clickhouseImage string
 param ingestImage string
@@ -91,6 +92,9 @@ resource clickhouseApp 'Microsoft.App/containerApps@2024-03-01' = {
       // 非HTTPのスケールルール (tcp) を使う場合、Microsoft Learn (scale-app) の記載により
       // activeRevisionsMode を single にする必要がある。
       activeRevisionsMode: 'single'
+      registries: [
+        { server: acrLoginServer, identity: managedIdentityId }
+      ]
       secrets: [
         { name: 'clickhouse-password', keyVaultUrl: clickhousePasswordSecretUrl, identity: managedIdentityId }
         { name: 'storage-account-key', value: storageAccount.listKeys().keys[0].value }
@@ -173,6 +177,9 @@ resource ingestApp 'Microsoft.App/containerApps@2024-03-01' = {
         targetPort: 4318
         transport: 'auto'
       }
+      registries: [
+        { server: acrLoginServer, identity: managedIdentityId }
+      ]
       secrets: [
         { name: 'clickhouse-password', keyVaultUrl: clickhousePasswordSecretUrl, identity: managedIdentityId }
       ]
@@ -226,6 +233,9 @@ resource queryApp 'Microsoft.App/containerApps@2024-03-01' = {
         targetPort: 8080
         transport: 'auto'
       }
+      registries: [
+        { server: acrLoginServer, identity: managedIdentityId }
+      ]
       secrets: [
         { name: 'query-api-key', keyVaultUrl: queryApiKeySecretUrl, identity: managedIdentityId }
         // DSN はホスト名(ClickHouseの内部FQDN)とパスワードを含む合成値のため、
@@ -278,6 +288,9 @@ resource mcpApp 'Microsoft.App/containerApps@2024-03-01' = {
         targetPort: 8081
         transport: 'auto'
       }
+      registries: [
+        { server: acrLoginServer, identity: managedIdentityId }
+      ]
       secrets: [
         { name: 'mcp-api-key', keyVaultUrl: mcpApiKeySecretUrl, identity: managedIdentityId }
         { name: 'query-api-key', keyVaultUrl: queryApiKeySecretUrl, identity: managedIdentityId }

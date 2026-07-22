@@ -36,7 +36,10 @@ resource keyVault 'Microsoft.KeyVault/vaults@2024-11-01' = {
     // 個人開発/PoC規模のため論理削除の保持期間は既定最小、パージ保護はオフ (azd down で確実に消せるように)。
     enableSoftDelete: true
     softDeleteRetentionInDays: 7
-    enablePurgeProtection: false
+    // false にすると、azd down で Key Vault が削除される際に、論理削除状態のまま残ってしまう。
+    // その場合、azd up で同じ名前の Key Vault を作ろうとすると、論理削除状態の Key Vault が残っているために作成に失敗する。
+    // そのため、パージ保護は有効にしておくこととする。
+    enablePurgeProtection: true
   }
 }
 

@@ -76,6 +76,17 @@ module security 'modules/security.bicep' = {
   }
 }
 
+module registry 'modules/registry.bicep' = {
+  name: 'registry'
+  scope: rg
+  params: {
+    location: location
+    resourceToken: resourceToken
+    tags: tags
+    managedIdentityPrincipalId: security.outputs.managedIdentityPrincipalId
+  }
+}
+
 module storage 'modules/storage.bicep' = {
   name: 'storage'
   scope: rg
@@ -102,6 +113,7 @@ module containerApps 'modules/containerapps.bicep' = {
     storageAccountName: storage.outputs.storageAccountName
     clickhouseFileShareName: storage.outputs.clickhouseFileShareName
     coldContainerName: storage.outputs.coldContainerName
+    acrLoginServer: registry.outputs.loginServer
     clickhousePassword: clickhousePassword
     clickhouseImage: clickhouseImage
     ingestImage: ingestImage
@@ -111,6 +123,7 @@ module containerApps 'modules/containerapps.bicep' = {
 }
 
 output AZURE_RESOURCE_GROUP string = rg.name
+output AZURE_CONTAINER_REGISTRY_ENDPOINT string = registry.outputs.loginServer
 output QUERY_API_URL string = containerApps.outputs.queryApiUrl
 output MCP_SERVER_URL string = containerApps.outputs.mcpServerUrl
 output INGEST_OTLP_HTTP_URL string = containerApps.outputs.ingestOtlpHttpUrl

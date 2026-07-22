@@ -12,3 +12,6 @@ deploy/compose/.env
 # IDE
 .vscode/
 .idea/
+
+# Bicep build artifacts (compiled ARM templates)
+infra/azure/main.json
