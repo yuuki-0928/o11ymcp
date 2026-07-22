@@ -11,7 +11,7 @@
 (攻撃者に悪用の手がかりを与えてしまうため)。代わりに以下のいずれかの方法で報告してください。
 
 1. このリポジトリの GitHub Security Advisories ([Report a vulnerability](../../security/advisories/new)) から報告する (推奨)
-2. yuki.halifax@gmail.com へ直接メールする
+2. yuki.development.project@gmail.com へ直接メールする
 
 報告には、再現手順・影響範囲・想定される深刻度を可能な範囲で含めてください。
 
