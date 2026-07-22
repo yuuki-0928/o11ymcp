@@ -9,8 +9,8 @@ import (
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
-	"github.com/nakagawa-yuki/o11y-mcp/mcp/internal/queryclient"
-	"github.com/nakagawa-yuki/o11y-mcp/mcp/internal/tools"
+	"github.com/yuuki-0928/o11y-mcp/mcp/internal/queryclient"
+	"github.com/yuuki-0928/o11y-mcp/mcp/internal/tools"
 )
 
 func main() {

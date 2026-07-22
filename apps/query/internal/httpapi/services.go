@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/nakagawa-yuki/o11y-mcp/query/internal/store"
+	"github.com/yuuki-0928/o11y-mcp/query/internal/store"
 )
 
 // listServicesResponse は GET /v1/services のレスポンス body (docs/design.md §5.1)。

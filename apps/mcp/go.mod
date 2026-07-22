@@ -1,4 +1,4 @@
-module github.com/nakagawa-yuki/o11y-mcp/mcp
+module github.com/yuuki-0928/o11y-mcp/mcp
 
 go 1.26.5
 

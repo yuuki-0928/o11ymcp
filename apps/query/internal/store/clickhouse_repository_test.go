@@ -14,7 +14,7 @@ import (
 
 	tcclickhouse "github.com/testcontainers/testcontainers-go/modules/clickhouse"
 
-	"github.com/nakagawa-yuki/o11y-mcp/query/internal/store"
+	"github.com/yuuki-0928/o11y-mcp/query/internal/store"
 )
 
 // setupClickHouse は結合テスト用に実際の ClickHouse コンテナを起動し、

@@ -12,7 +12,7 @@ dist:
   name: o11y-mcp-ingest
   description: o11y-mcp Ingest (OTLP receiver -> ClickHouse exporter)
   output_path: ./_build
-  module: github.com/nakagawa-yuki/o11y-mcp/ingest
+  module: github.com/yuuki-0928/o11y-mcp/ingest
 
 # バージョンは https://proxy.golang.org 上で実在を確認した上で固定している
 # (opentelemetry-collector本体とcontribは同一バージョン番号でリリースされる)。

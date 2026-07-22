@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/nakagawa-yuki/o11y-mcp/mcp/internal/queryclient"
+	"github.com/yuuki-0928/o11y-mcp/mcp/internal/queryclient"
 )
 
 // fakeQueryAPI は QueryAPI のテスト用実装。呼び出された引数を記録しつつ、

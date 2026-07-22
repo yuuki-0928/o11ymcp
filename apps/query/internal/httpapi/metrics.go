@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/nakagawa-yuki/o11y-mcp/query/internal/store"
+	"github.com/yuuki-0928/o11y-mcp/query/internal/store"
 )
 
 const (

@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/nakagawa-yuki/o11y-mcp/query/internal/store"
+	"github.com/yuuki-0928/o11y-mcp/query/internal/store"
 )
 
 // fakeLogRepository は渡された store.LogQuery を記録しつつ、設定済みの結果/エラーを返す。

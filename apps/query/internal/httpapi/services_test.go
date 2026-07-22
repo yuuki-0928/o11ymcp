@@ -8,7 +8,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/nakagawa-yuki/o11y-mcp/query/internal/store"
+	"github.com/yuuki-0928/o11y-mcp/query/internal/store"
 )
 
 // fakeServiceRepository は store.ServiceRepository のテスト用実装。

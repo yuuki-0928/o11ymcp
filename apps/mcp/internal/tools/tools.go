@@ -7,7 +7,7 @@ import (
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
-	"github.com/nakagawa-yuki/o11y-mcp/mcp/internal/queryclient"
+	"github.com/yuuki-0928/o11y-mcp/mcp/internal/queryclient"
 )
 
 // QueryAPI は各ツールハンドラが必要とする Query API 呼び出しのインターフェース。
