@@ -1,6 +1,6 @@
 # マルチステージビルド: ビルド時の依存 (Goツールチェイン) を最終イメージに残さないことで、
 # イメージサイズとアタックサーフェスを最小化する (NFR-C-01のコスト最小化、NFR-S-04にも寄与)。
-FROM golang:1.26.5-alpine3.24 AS build
+FROM golang:1.27.1-alpine3.24 AS build
 WORKDIR /src
 
 # go.mod/go.sum だけ先にコピーして `go mod download` することで、
